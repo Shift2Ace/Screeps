@@ -1,6 +1,8 @@
 var roleHarvester = require('role.harvester');
 var roleUpgrader = require('role.upgrader');
 var roleBuilder = require('role.builder');
+var roleClaimer = require('role.claimer');
+var roleRoadBuilder = require('role.roadBuilder');
 
 module.exports.loop = function () {
     
@@ -9,15 +11,22 @@ module.exports.loop = function () {
     var harvesters = _.filter(Game.creeps, (creep) => creep.memory.role == 'harvester');
     var upgraders = _.filter(Game.creeps, (creep) => creep.memory.role == 'upgrader');
     var builders = _.filter(Game.creeps, (creep) => creep.memory.role == 'builder');
-
-    if(harvesters.length < 2) {
+    var claimers = _.filter(Game.creeps, (creep) => creep.memory.role == 'claimer');
+    var roadBuilders = _.filter(Game.creeps, (creep) => creep.memory.role == 'roadBuilder');
+    if(harvesters.length < 4) {
         buildCreep('harvester');
     }
     if(upgraders.length < 4){
         buildCreep('upgrader');
     }
-    if(builders.length <4){
+    if(builders.length < 2){
         buildCreep('builder');
+    }
+    if(claimers.length < 0){
+        buildCreep('claimer');
+    }
+    if(roadBuilders.length < 2){
+        buildCreep('roadBuilder');
     }
     
     if(Game.spawns['Spawn1'].spawning) { 
@@ -40,6 +49,27 @@ module.exports.loop = function () {
         if(creep.memory.role == 'builder') {
             roleBuilder.run(creep);
         }
+        if(creep.memory.role == 'claimer') {
+            roleClaimer.run(creep);
+        }
+        if(creep.memory.role == 'roadBuilder') {
+            roleRoadBuilder.run(creep);
+        }
+    }
+    
+    var tower = Game.getObjectById('64a19f798a7e9378a07a615e');
+    if(tower) {
+        var closestDamagedStructure = tower.pos.findClosestByRange(FIND_STRUCTURES, {
+            filter: (structure) => structure.hits < structure.hitsMax
+        });
+        if(closestDamagedStructure) {
+            tower.repair(closestDamagedStructure);
+        }
+
+        var closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        if(closestHostile) {
+            tower.attack(closestHostile);
+        }
     }
     
 }
@@ -59,13 +89,19 @@ function buildCreep(roleCreate){
     var bodySuc;
     console.log('Spawning new creep: ' + newName);
     if (roleCreate == "harvester"){
-        Game.spawns['Spawn1'].spawnCreep([WORK,CARRY,MOVE], newName, 
+        Game.spawns['Spawn1'].spawnCreep([WORK,WORK,CARRY,CARRY,MOVE, MOVE], newName, 
             {memory: {role: roleCreate}});
     }else if (roleCreate == "upgrader"){
-        Game.spawns['Spawn1'].spawnCreep([WORK,CARRY,MOVE], newName, 
+        Game.spawns['Spawn1'].spawnCreep([WORK,WORK,WORK,WORK,CARRY,CARRY,MOVE,MOVE,MOVE], newName, 
             {memory: {role: roleCreate}});
     }else if (roleCreate == "builder"){
-        Game.spawns['Spawn1'].spawnCreep([WORK,CARRY,MOVE], newName, 
+        Game.spawns['Spawn1'].spawnCreep([WORK,WORK,CARRY,MOVE], newName, 
+            {memory: {role: roleCreate}});
+    }else if (roleCreate == "claimer"){
+        Game.spawns['Spawn1'].spawnCreep([CLAIM,MOVE], newName, 
+            {memory: {role: roleCreate, input: BOTTOM}});
+    }else if (roleCreate == "roadBuilder"){
+        Game.spawns['Spawn1'].spawnCreep([WORK,WORK,CARRY,MOVE,MOVE,MOVE], newName, 
             {memory: {role: roleCreate}});
     }
 }
